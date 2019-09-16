@@ -34,7 +34,7 @@ public class ManageController {
     //GET http://localhost:8082/attrInfoList?catalog3Id=61 404
     @GetMapping("attrInfoList")
     public List<BaseAttrInfo> attrInfoList(String catalog3Id){
-        System.out.println("aaaa");
+        //System.out.println("aaaa");
         return manageService.getAttrList(catalog3Id);
     }
 
@@ -49,6 +49,37 @@ public class ManageController {
     public List<BaseAttrValue> getAttrValueList(String attrId){
         BaseAttrInfo attrInfo = manageService.getAttrInfo(attrId);
         return attrInfo.getAttrValueList();
+    }
+
+    //saveSpuInfo
+    @PostMapping("saveSpuInfo")
+    public String saveSpuInfo(@RequestBody SpuInfo spuInfo){
+        manageService.saveSpuInfo(spuInfo);
+        return "success";
+    }
+
+    //POST http://localhost:8082/baseSaleAttrList 404
+    @PostMapping("baseSaleAttrList")
+    public List<BaseSaleAttr> baseSaleAttrList(){
+        return manageService.baseSaleAttrList();
+    }
+
+    //GET http://localhost:8082/spuList?catalog3Id=61
+    @GetMapping("spuList")
+    public List<SpuInfo> spuList(String catalog3Id){
+        return manageService.spuList(catalog3Id);
+    }
+
+    //http://manage.gmall.com/spuImageList?spuId=59
+    @GetMapping("spuImageList")
+    public List<SpuImage> spuImageList(String spuId){
+        return manageService.spuImageList(spuId);
+    }
+
+    //http://manage.gmall.com/spuSaleAttrList?spuId=59
+    @GetMapping("spuSaleAttrList")
+    public List<SpuSaleAttr> spuSaleAttrList(String spuId){
+        return manageService.spuSaleAttrList(spuId);
     }
 
 }

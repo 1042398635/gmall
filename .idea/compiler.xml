@@ -6,9 +6,11 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="fastdfs-client-java" />
         <module name="gamll-util-common" />
         <module name="gmall-bean" />
         <module name="gmall-interface" />
+        <module name="gmall-item-web" />
         <module name="gmall-manage-service" />
         <module name="gmall-manage-web" />
         <module name="gmall-order-web" />
@@ -19,9 +21,11 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="fastdfs-client-java" target="1.6" />
       <module name="gamll-util-common" target="1.8" />
       <module name="gmall-bean" target="1.8" />
       <module name="gmall-interface" target="1.8" />
+      <module name="gmall-item-web" target="1.8" />
       <module name="gmall-manage-service" target="1.8" />
       <module name="gmall-manage-web" target="1.8" />
       <module name="gmall-order-web" target="1.8" />
