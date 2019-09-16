@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <input th:value="${skuInfo.skuName}" />
+    <table>
+        <tr th:each="skuImage:${skuInfo.skuImageList}" th:if="${skuImage.id} == 147">
+            <td th:text="(${skuImage.id}) == 147 ? 666:888">
+
+            </td>
+        </tr>
+    </table>
+    <p th:utext="${gname}">color</p>
+</body>
+</html>
