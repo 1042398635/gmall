@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 
 import javax.persistence.Column;
 import javax.persistence.Id;
+import javax.persistence.Transient;
 import java.io.Serializable;
 
 @Data
@@ -18,5 +19,8 @@ public class BaseAttrValue implements Serializable {
     private String valueName;
     @Column
     private String attrId;
+
+    @Transient
+    private String urlParam;
 
 }

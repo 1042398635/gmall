@@ -36,4 +36,6 @@ public interface ManageService {
     List<SpuSaleAttr> selectSpuSaleAttrListCheckBySku(String skuId,String spuId);
 
     Map getSkuValueIdsMap(String spuId);
+
+    List<BaseAttrInfo> getAttrListByValuesId(List valueIdList);
 }

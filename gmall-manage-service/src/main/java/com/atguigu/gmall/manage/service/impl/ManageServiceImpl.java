@@ -1,19 +1,31 @@
 package com.atguigu.gmall.manage.service.impl;
 
 import com.alibaba.dubbo.config.annotation.Service;
+import com.alibaba.fastjson.JSON;
 import com.atguigu.gmall.bean.*;
+import com.atguigu.gmall.config.RedisUtil;
 import com.atguigu.gmall.manage.mapper.*;
 import com.atguigu.gmall.service.ManageService;
+import org.apache.commons.lang3.StringUtils;
+import org.redisson.Redisson;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import redis.clients.jedis.Jedis;
 import tk.mybatis.mapper.entity.Example;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class ManageServiceImpl implements ManageService {
+
+    @Autowired
+    RedisUtil redisUtil;
 
     @Autowired
     BaseCatalog1Mapper baseCatalog1Mapper;
@@ -53,6 +65,14 @@ public class ManageServiceImpl implements ManageService {
     SkuInfoMapper skuInfoMapper;
     @Autowired
     SkuSaleAttrValueMapper skuSaleAttrValueMapper;
+
+
+    public static final String SKUKEY_PREFIX="sku:";
+
+    public static final String SKUKEY_SUFFIX=":info";
+
+    public static final String SKUKEY_LOCK_SUFFIX=":lock";
+    //public static final int SKUKEY_TIMEOUT=24*60*60;
 
     @Override
     public List<BaseCatalog1> getCatalog1() {
@@ -216,6 +236,61 @@ public class ManageServiceImpl implements ManageService {
 
     @Override
     public SkuInfo getSkuInfo(String skuId) {
+        SkuInfo skuInfoResult=null;
+        Jedis jedis = redisUtil.getJedis();
+        int SKUKEY_TIMEOUT=100;
+        String skuKey=SKUKEY_PREFIX+skuId+SKUKEY_SUFFIX;
+        String skuInfoJson = jedis.get(skuKey);
+        if (skuInfoJson!=null){
+            if (!"EMPTY".equals(skuInfoJson)){
+                System.out.println(Thread.currentThread()+"命中缓存！");
+                skuInfoResult = JSON.parseObject(skuInfoJson,SkuInfo.class);
+            }
+        }else {
+            Config config = new Config();
+            config.useSingleServer().setAddress("redis://redis.gmall.com:6379");
+            RedissonClient redissonClient = Redisson.create(config);
+            String lockKey=SKUKEY_PREFIX+skuId+SKUKEY_LOCK_SUFFIX;
+            RLock lock = redissonClient.getLock(lockKey);
+
+            boolean locked=false;
+            try {
+                locked = lock.tryLock(10,5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            if (locked){
+                System.out.println(Thread.currentThread() + "得到锁！！");
+                // 如果得到锁后能够在缓存中查询 ，那么直接使用缓存数据 不用在查询数据库
+                System.out.println(Thread.currentThread()+"再次查询缓存！！");
+                String skuInfoJsonResult = jedis.get(skuKey);
+                if (skuInfoJsonResult!=null){
+                    if (!"EMPTY".equals(skuInfoJsonResult)){
+                        System.out.println(Thread.currentThread()+"命中缓存！");
+                        skuInfoResult = JSON.parseObject(skuInfoJsonResult,SkuInfo.class);
+                    }
+                }else {
+                    skuInfoResult = getSkuInfoDB(skuId);
+                    System.out.println(Thread.currentThread() + "写入缓存！！");
+                    if (skuInfoResult!=null){
+                        skuInfoJsonResult = JSON.toJSONString(skuInfoResult);
+                    }else {
+                        skuInfoJsonResult = "EMPTY";
+                    }
+                    jedis.setex(skuKey,SKUKEY_TIMEOUT,skuInfoJsonResult);
+                }
+                lock.unlock();
+            }
+        }
+        return skuInfoResult;
+    }
+
+    //@Override
+    public SkuInfo getSkuInfoDB(String skuId) {
+
+/*        Jedis jedis = redisUtil.getJedis();
+        jedis.set("k1","v1");
+        jedis.close();*/
 
         SkuInfo skuInfo = skuInfoMapper.selectByPrimaryKey(skuId);
 
@@ -228,6 +303,11 @@ public class ManageServiceImpl implements ManageService {
         skuSaleAttrValue.setSkuId(skuId);
         List<SkuSaleAttrValue> skuSaleAttrValueList = skuSaleAttrValueMapper.select(skuSaleAttrValue);
         skuInfo.setSkuSaleAttrValueList(skuSaleAttrValueList);
+
+        SkuAttrValue skuAttrValue = new SkuAttrValue();
+        skuAttrValue.setSkuId(skuId);
+        List<SkuAttrValue> skuAttrValueList = skuAttrValueMapper.select(skuAttrValue);
+        skuInfo.setSkuAttrValueList(skuAttrValueList);
 
         return skuInfo;
     }
@@ -247,5 +327,11 @@ public class ManageServiceImpl implements ManageService {
             hashMap.put(valueIds,skuId);
         }
         return hashMap;
+    }
+
+    @Override
+    public List<BaseAttrInfo> getAttrListByValuesId(List valueIdList) {
+        String valueIds = StringUtils.join(valueIdList.toArray(), ",");
+        return baseAttrInfoMapper.getAttrListByValuesId(valueIds);
     }
 }
